@@ -4,29 +4,51 @@
     <meta charset="UTF-8">
     <title>Yung Automation Pro</title>
     <style>
-        body { background: #0f0f23; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
-        .container { background: #1a1a3a; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; }
-        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; }
-        button { background: #00d4ff; font-weight: bold; cursor: pointer; }
+        body { background: #0f0f23; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: #1a1a3a; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+        input, select, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: none; background: #0f0f23; color: white; box-sizing: border-box; }
+        button { background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h2>Yung Automation</h2>
-    <input type="text" id="token" placeholder="Bearer Token">
-    <button onclick="buscarLivros()">LISTAR MEUS LIVROS</button>
-    
-    <select id="listaLivros" style="display:none;">
-        <option value="">Selecione um livro...</option>
-    </select>
-    
+    <!-- Campos de Login -->
+    <input type="text" id="ra" placeholder="RA + digito + sp">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="fazerLogin()">ENTRAR</button>
+
+    <!-- Áreas escondidas que aparecem após o login -->
+    <select id="listaLivros" style="display:none;"></select>
     <button id="btnIniciar" style="display:none;" onclick="iniciarLeitura()">INICIAR CICLO</button>
     <div id="status"></div>
 </div>
 
 <script>
-    async function buscarLivros() {
-        const token = document.getElementById('token').value;
+    let tokenSalvo = "";
+
+    async function fazerLogin() {
+        const ra = document.getElementById('ra').value;
+        const senha = document.getElementById('senha').value;
+
+        // Aqui o servidor troca RA/Senha por um Token
+        const res = await fetch('https://ualida.serveousercontent.com/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+            body: JSON.stringify({ ra, senha })
+        });
+        const data = await res.json();
+        
+        if(data.token) {
+            tokenSalvo = data.token;
+            buscarLivros(tokenSalvo);
+        } else {
+            alert("Erro no login");
+        }
+    }
+
+    async function buscarLivros(token) {
         const res = await fetch('https://ualida.serveousercontent.com/buscar-livros', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
@@ -47,15 +69,11 @@
     }
 
     async function iniciarLeitura() {
-        const dados = {
-            token: document.getElementById('token').value,
-            livro_id: document.getElementById('listaLivros').value,
-            ra: "123456" 
-        };
-        const res = await fetch('https://ualida.serveousercontent.com/iniciar', {
+        const livro_id = document.getElementById('listaLivros').value;
+        await fetch('https://ualida.serveousercontent.com/iniciar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
-            body: JSON.stringify(dados)
+            body: JSON.stringify({ token: tokenSalvo, livro_id, ra: document.getElementById('ra').value })
         });
         document.getElementById('status').innerText = "✅ Automação rodando!";
     }
