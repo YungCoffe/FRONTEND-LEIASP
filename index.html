@@ -14,26 +14,24 @@
 
 <div class="container">
     <h2>Yung Automation</h2>
-    <!-- Campos de Login -->
     <input type="text" id="ra" placeholder="RA + digito + sp">
     <input type="password" id="senha" placeholder="Senha">
     <button onclick="fazerLogin()">ENTRAR</button>
 
-    <!-- Áreas escondidas que aparecem após o login -->
     <select id="listaLivros" style="display:none;"></select>
     <button id="btnIniciar" style="display:none;" onclick="iniciarLeitura()">INICIAR CICLO</button>
     <div id="status"></div>
 </div>
 
 <script>
+    const BASE_URL = "https://serveousercontent.com:45349";
     let tokenSalvo = "";
 
     async function fazerLogin() {
         const ra = document.getElementById('ra').value;
         const senha = document.getElementById('senha').value;
 
-        // Aqui o servidor troca RA/Senha por um Token
-        const res = await fetch('https://ualida.serveousercontent.com/login', {
+        const res = await fetch(`${BASE_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
             body: JSON.stringify({ ra, senha })
@@ -49,7 +47,7 @@
     }
 
     async function buscarLivros(token) {
-        const res = await fetch('https://ualida.serveousercontent.com/buscar-livros', {
+        const res = await fetch(`${BASE_URL}/buscar-livros`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
             body: JSON.stringify({ token })
@@ -60,6 +58,7 @@
         select.style.display = 'block';
         document.getElementById('btnIniciar').style.display = 'block';
         
+        select.innerHTML = '<option value="">Selecione um livro...</option>';
         livros.forEach(livro => {
             let opt = document.createElement('option');
             opt.value = livro.id;
@@ -70,12 +69,13 @@
 
     async function iniciarLeitura() {
         const livro_id = document.getElementById('listaLivros').value;
-        await fetch('https://ualida.serveousercontent.com/iniciar', {
+        const res = await fetch(`${BASE_URL}/iniciar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
             body: JSON.stringify({ token: tokenSalvo, livro_id, ra: document.getElementById('ra').value })
         });
-        document.getElementById('status').innerText = "✅ Automação rodando!";
+        const status = await res.json();
+        document.getElementById('status').innerText = status.status === "sucesso" ? "✅ Automação rodando!" : "❌ Erro ao iniciar.";
     }
 </script>
 </body>
