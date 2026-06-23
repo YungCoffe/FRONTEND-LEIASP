@@ -11,7 +11,7 @@
         input, select, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: none; background: #0f0f23; color: white; box-sizing: border-box; }
         button { background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; transition: 0.3s; }
         button:hover { background: #00a3c4; }
-        #status { margin-top: 15px; font-size: 0.9em; color: #aaa; word-wrap: break-word; }
+        #status { margin-top: 15px; font-size: 0.9em; color: #aaa; }
     </style>
 </head>
 <body>
@@ -28,84 +28,77 @@
 </div>
 
 <script>
-    const BASE_URL = "https://yung.serveousercontent.com";
-    const API_KEY = "YUNG_SECURE_2026";
+    // Apenas o backend (Termux) é usado para a AÇÃO final, não para busca
+    const BASE_URL = "https://yung.serveousercontent.com"; 
     let tokenSalvo = "";
 
     async function fazerLogin() {
         const ra = document.getElementById('ra').value;
         const senha = document.getElementById('senha').value;
-        const status = document.getElementById('status');
-        status.innerText = "Autenticando...";
+        document.getElementById('status').innerText = "Autenticando...";
 
+        // Aqui mantemos o login pelo seu servidor para pegar o token original
         try {
             const res = await fetch(`${BASE_URL}/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ra, senha })
             });
             const data = await res.json();
-            
-            if(res.ok && data.token) {
+            if(data.token) {
                 tokenSalvo = data.token;
-                status.innerText = "Login efetuado! Buscando livros...";
                 buscarLivros(tokenSalvo);
             } else {
-                status.innerText = "Erro: " + (data.error || "Login falhou");
+                document.getElementById('status').innerText = "Erro no login.";
             }
         } catch (e) {
-            status.innerText = "Erro de conexão.";
+            document.getElementById('status').innerText = "Erro no servidor Termux.";
         }
     }
 
     async function buscarLivros(token) {
+        document.getElementById('status').innerText = "Buscando livros...";
         try {
-            const res = await fetch(`${BASE_URL}/buscar-livros`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-                body: JSON.stringify({ token })
+            // BUSCA DIRETA - Contorna o erro de servidor
+            const res = await fetch('https://prod-apistudent.elefanteletrado.com.br/v1/library/genres/2/11', {
+                method: 'GET',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Origin': 'https://em.elefanteletrado.com.br',
+                    'Referer': 'https://em.elefanteletrado.com.br/library/multimodal'
+                }
             });
             
             const data = await res.json();
-            console.log("Resposta da API:", data); // Debug no console do navegador
-
-            // Ajuste conforme a estrutura real retornada (ex: se o array estiver dentro de 'data.Books')
-            const lista = data.Books || data.Items || data; 
+            const lista = data.Books || data.Items || data;
             const select = document.getElementById('listaLivros');
             
             select.innerHTML = '<option value="">Selecione um livro...</option>';
+            lista.forEach(livro => {
+                let opt = document.createElement('option');
+                opt.value = livro.Id || livro.id;
+                opt.innerHTML = livro.Title || livro.title;
+                select.appendChild(opt);
+            });
             
-            if (Array.isArray(lista)) {
-                lista.forEach(livro => {
-                    let opt = document.createElement('option');
-                    // Usando campos comuns que a API costuma retornar
-                    opt.value = livro.Id || livro.id;
-                    opt.innerHTML = livro.Title || livro.title || "Livro sem título";
-                    select.appendChild(opt);
-                });
-                select.style.display = 'block';
-                document.getElementById('btnIniciar').style.display = 'block';
-                document.getElementById('status').innerText = "Escolha um livro.";
-            } else {
-                document.getElementById('status').innerText = "Erro: Formato de lista inválido.";
-            }
+            select.style.display = 'block';
+            document.getElementById('btnIniciar').style.display = 'block';
+            document.getElementById('status').innerText = "Escolha um livro:";
         } catch (e) {
-            document.getElementById('status').innerText = "Erro ao buscar livros.";
+            document.getElementById('status').innerText = "Erro na busca direta.";
         }
     }
 
     async function iniciarLeitura() {
         const livro_id = document.getElementById('listaLivros').value;
-        if(!livro_id) return alert("Selecione um livro!");
-
+        // O início da leitura volta a ser pelo seu servidor Termux
         const res = await fetch(`${BASE_URL}/iniciar`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
-            body: JSON.stringify({ token: tokenSalvo, livro_id, ra: document.getElementById('ra').value })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: tokenSalvo, livro_id })
         });
-        
         const data = await res.json();
-        document.getElementById('status').innerText = data.status === "sucesso" ? "✅ Automação rodando!" : "❌ Erro: " + data.msg;
+        document.getElementById('status').innerText = data.msg || "Executado!";
     }
 </script>
 </body>
