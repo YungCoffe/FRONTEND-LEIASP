@@ -2,12 +2,16 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yung Automation Pro</title>
     <style>
-        body { background: #0f0f23; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: #1a1a3a; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; }
+        body { background: #0f0f23; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background: #1a1a3a; padding: 30px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { color: #00d4ff; margin-bottom: 20px; }
         input, select, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: none; background: #0f0f23; color: white; box-sizing: border-box; }
-        button { background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; }
+        button { background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #00a3c4; }
+        #status { margin-top: 15px; font-size: 0.9em; color: #aaa; }
     </style>
 </head>
 <body>
@@ -24,25 +28,33 @@
 </div>
 
 <script>
-    const BASE_URL = "https://serveousercontent.com:45349";
+    const BASE_URL = "https://yung.serveousercontent.com";
     let tokenSalvo = "";
 
     async function fazerLogin() {
         const ra = document.getElementById('ra').value;
         const senha = document.getElementById('senha').value;
+        const status = document.getElementById('status');
 
-        const res = await fetch(`${BASE_URL}/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
-            body: JSON.stringify({ ra, senha })
-        });
-        const data = await res.json();
-        
-        if(data.token) {
-            tokenSalvo = data.token;
-            buscarLivros(tokenSalvo);
-        } else {
-            alert("Erro no login");
+        status.innerText = "Autenticando...";
+
+        try {
+            const res = await fetch(`${BASE_URL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+                body: JSON.stringify({ ra, senha })
+            });
+            const data = await res.json();
+            
+            if(data.token) {
+                tokenSalvo = data.token;
+                status.innerText = "Login efetuado! Buscando livros...";
+                buscarLivros(tokenSalvo);
+            } else {
+                status.innerText = "Erro: " + (data.error || "Login inválido");
+            }
+        } catch (e) {
+            status.innerText = "Erro de conexão com o servidor.";
         }
     }
 
@@ -55,9 +67,6 @@
         const livros = await res.json();
         
         const select = document.getElementById('listaLivros');
-        select.style.display = 'block';
-        document.getElementById('btnIniciar').style.display = 'block';
-        
         select.innerHTML = '<option value="">Selecione um livro...</option>';
         livros.forEach(livro => {
             let opt = document.createElement('option');
@@ -65,17 +74,23 @@
             opt.innerHTML = livro.title;
             select.appendChild(opt);
         });
+        
+        select.style.display = 'block';
+        document.getElementById('btnIniciar').style.display = 'block';
+        document.getElementById('status').innerText = "Escolha um livro abaixo.";
     }
 
     async function iniciarLeitura() {
         const livro_id = document.getElementById('listaLivros').value;
+        if(!livro_id) return alert("Selecione um livro primeiro!");
+
         const res = await fetch(`${BASE_URL}/iniciar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
             body: JSON.stringify({ token: tokenSalvo, livro_id, ra: document.getElementById('ra').value })
         });
-        const status = await res.json();
-        document.getElementById('status').innerText = status.status === "sucesso" ? "✅ Automação rodando!" : "❌ Erro ao iniciar.";
+        const data = await res.json();
+        document.getElementById('status').innerText = data.status === "sucesso" ? "✅ Automação rodando!" : "❌ " + data.msg;
     }
 </script>
 </body>
