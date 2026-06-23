@@ -2,64 +2,62 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yung Automation Hub</title>
+    <title>Yung Automation Pro</title>
     <style>
-        body { background: #0f0f23; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { background: #1a1a3a; padding: 25px; border-radius: 15px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h2 { text-align: center; color: #00d4ff; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; background: #0f0f23; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 8px; background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; }
-        .status { margin-top: 15px; text-align: center; font-size: 0.9em; word-break: break-all; }
+        body { background: #0f0f23; color: white; font-family: sans-serif; display: flex; justify-content: center; padding: 20px; }
+        .container { background: #1a1a3a; padding: 25px; border-radius: 15px; width: 100%; max-width: 400px; }
+        input, select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; }
+        button { background: #00d4ff; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <h2>Yung Automation</h2>
     <input type="text" id="token" placeholder="Bearer Token">
-    <input type="text" id="ra" placeholder="RA do Aluno">
-    <input type="text" id="livroId" placeholder="ID do Livro">
-    <button onclick="iniciarLeitura()">INICIAR CICLO</button>
-    <div id="status" class="status"></div>
+    <button onclick="buscarLivros()">LISTAR MEUS LIVROS</button>
+    
+    <select id="listaLivros" style="display:none;">
+        <option value="">Selecione um livro...</option>
+    </select>
+    
+    <button id="btnIniciar" style="display:none;" onclick="iniciarLeitura()">INICIAR CICLO</button>
+    <div id="status"></div>
 </div>
 
 <script>
+    async function buscarLivros() {
+        const token = document.getElementById('token').value;
+        const res = await fetch('https://ualida.serveousercontent.com/buscar-livros', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+            body: JSON.stringify({ token })
+        });
+        const livros = await res.json();
+        
+        const select = document.getElementById('listaLivros');
+        select.style.display = 'block';
+        document.getElementById('btnIniciar').style.display = 'block';
+        
+        livros.forEach(livro => {
+            let opt = document.createElement('option');
+            opt.value = livro.id;
+            opt.innerHTML = livro.title;
+            select.appendChild(opt);
+        });
+    }
+
     async function iniciarLeitura() {
-        const statusDiv = document.getElementById('status');
         const dados = {
             token: document.getElementById('token').value,
-            ra: document.getElementById('ra').value,
-            livro_id: document.getElementById('livroId').value,
-            payload: {
-                BookId: document.getElementById('livroId').value,
-                IsComplete: false,
-                Page: 1,
-                PageCount: 100, 
-                ReadDate: new Date().toLocaleDateString('pt-BR'),
-                ReadType: "Read",
-                TimeElapsed: 30, // 30 segundos por ciclo
-                TimezoneOffset: 180
-            }
+            livro_id: document.getElementById('listaLivros').value,
+            ra: "123456" 
         };
-
-        statusDiv.innerText = "Enviando...";
-
-        try {
-            const response = await fetch('https://ualida.serveousercontent.com/iniciar', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-api-key': 'YUNG_SECURE_2026'
-                },
-                body: JSON.stringify(dados)
-            });
-            
-            const res = await response.json();
-            statusDiv.innerText = res.status === "sucesso" ? "✅ Automação iniciada com sucesso!" : "❌ Erro: " + res.msg;
-        } catch (err) {
-            statusDiv.innerText = "❌ Erro de conexão. Verifique se o servidor no Termux está online.";
-        }
+        const res = await fetch('https://ualida.serveousercontent.com/iniciar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+            body: JSON.stringify(dados)
+        });
+        document.getElementById('status').innerText = "✅ Automação rodando!";
     }
 </script>
 </body>
