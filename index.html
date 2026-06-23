@@ -11,7 +11,7 @@
         input, select, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: none; background: #0f0f23; color: white; box-sizing: border-box; }
         button { background: #00d4ff; color: #0f0f23; font-weight: bold; cursor: pointer; transition: 0.3s; }
         button:hover { background: #00a3c4; }
-        #status { margin-top: 15px; font-size: 0.9em; color: #aaa; }
+        #status { margin-top: 15px; font-size: 0.9em; color: #aaa; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -28,7 +28,9 @@
 </div>
 
 <script>
+    // URL Fixa do seu túnel Serveo
     const BASE_URL = "https://yung.serveousercontent.com";
+    const API_KEY = "YUNG_SECURE_2026";
     let tokenSalvo = "";
 
     async function fazerLogin() {
@@ -41,32 +43,40 @@
         try {
             const res = await fetch(`${BASE_URL}/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-api-key': API_KEY 
+                },
                 body: JSON.stringify({ ra, senha })
             });
+            
             const data = await res.json();
             
-            if(data.token) {
+            if(res.ok && data.token) {
                 tokenSalvo = data.token;
                 status.innerText = "Login efetuado! Buscando livros...";
                 buscarLivros(tokenSalvo);
             } else {
-                status.innerText = "Erro: " + (data.error || "Login inválido");
+                status.innerText = "Erro: " + (data.error || "Login falhou");
             }
         } catch (e) {
-            status.innerText = "Erro de conexão com o servidor.";
+            status.innerText = "Erro de conexão. Verifique se o servidor está rodando no Termux.";
         }
     }
 
     async function buscarLivros(token) {
         const res = await fetch(`${BASE_URL}/buscar-livros`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-api-key': API_KEY 
+            },
             body: JSON.stringify({ token })
         });
-        const livros = await res.json();
         
+        const livros = await res.json();
         const select = document.getElementById('listaLivros');
+        
         select.innerHTML = '<option value="">Selecione um livro...</option>';
         livros.forEach(livro => {
             let opt = document.createElement('option');
@@ -77,20 +87,24 @@
         
         select.style.display = 'block';
         document.getElementById('btnIniciar').style.display = 'block';
-        document.getElementById('status').innerText = "Escolha um livro abaixo.";
+        document.getElementById('status').innerText = "Escolha um livro.";
     }
 
     async function iniciarLeitura() {
         const livro_id = document.getElementById('listaLivros').value;
-        if(!livro_id) return alert("Selecione um livro primeiro!");
+        if(!livro_id) return alert("Selecione um livro!");
 
         const res = await fetch(`${BASE_URL}/iniciar`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': 'YUNG_SECURE_2026' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-api-key': API_KEY 
+            },
             body: JSON.stringify({ token: tokenSalvo, livro_id, ra: document.getElementById('ra').value })
         });
+        
         const data = await res.json();
-        document.getElementById('status').innerText = data.status === "sucesso" ? "✅ Automação rodando!" : "❌ " + data.msg;
+        document.getElementById('status').innerText = data.status === "sucesso" ? "✅ Automação rodando!" : "❌ Erro: " + data.msg;
     }
 </script>
 </body>
